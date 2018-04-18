@@ -244,12 +244,38 @@ def extract(in_video, out_file, password=''):
                 f.write(message)
         clean()
         return True
+def available (in_video, message_file): #проверка до начала работы сокрытия. вызывается пользователем
+        deldir('temp', create=True)
+        try:
+                with open('rdmtstego.log', 'a') as f: # отделяется аудио и фреймы
+                        subprocess.call(['ffmpeg','-i',in_video,'-f','mp3','sound.mp3','-r',str(25),'temp/%05d.jpg','-y','-hide_banner'],stdout=f, stderr=f)
+                print (u'Видео открыто')
+                with open('rdmtstego.log', 'a') as f:
+                        bytes_available=subprocess.call(['mp3stegz_console.exe','available','sound.mp3'],stdout=f, stderr=f)
+                print(u'Всего байтов доступно (в аудио): '+str(bytes_available))
+                frame_count=len(os.listdir('temp'))
+                print(u'Максимальная длина ключа = '+str(frame_count)+u' бит (ключи длиннее 128бит не предусмотрены шифром)')
+                key=''.join(chr(random.randrange(0,255)) for i in range(KEY_LENGTH//8)) #ключ шифрования самого сообщения для AES, 16байт (128бит)
+                file=key
+                file+='@#@#'
+                with open(message_file, 'r') as f:
+                        mas=f.read()
+                        print (u'Размер файла '+str(len(mas))+u' байт')
+                        file+=mas
+                compressed_file=zlib.compress(file)
+                return bytes_available-len(compressed_file), (bytes_available-len(compressed_file)>0)
+        except:
+                return -1, False
 def main():
         parser = argparse.ArgumentParser(
                 prog='rdstego',
-        description=u'Программа rdstego предназначена для скрытия информации в видео и её извлечения.')
+        description=u'Программа rdstego предназначена для скрытия информации в видео и её извлечения. На выходе всегда получается *.mp4 файл')
                 #Rdstego is an application to save or retrieve an encrypted message or encrypted file concealed inside a video.)
         subparsers = parser.add_subparsers(help=u'команды', dest='command')
+        # Пункт "Доступное место"
+        parser_available = subparsers.add_parser('available', help=u'Проверка пригодности видео. Показывает допустимый размер сообщения')
+        parser_available.add_argument('-i','--input', dest='input_video_file', help=u'Видео файл для проверки', required=True)
+        parser_available.add_argument("-f",  "--file", dest="message_file", help=u"Файл с секретными данными.")
         # Пункт "Спрятать"
         parser_hide = subparsers.add_parser('hide', help=u'Спрятать в видео')
         # Видеоконтейнер
@@ -348,6 +374,18 @@ def main():
                                 message = f.read()
                         print (u'Данные:')
                         print (''.join([chr(ord(x)) for x in message]))
+        elif args.command == 'available':
+                print (u'Проверка доступного места')
+                result, success = available(args.input_video_file,args.message_file)
+                if success:
+                        print (u'Сообщение может поместиться. Ещё влезет около '+str(result)+u' байт')
+                elif result==-1:
+                        print (u'Ошибка.')
+                else:
+                        print (u'Не хватает места для '+str(abs(result))+u' байт')
+                        print (u'Если сообщение не поместилось, но расхождение небольшое (меньше 20 байт), можно попытаться выполнить сокрытие.')
+                        print (u'Успех зависит от генератора случайных чисел.')
+                clean()
 if __name__ == '__main__':
-        clean()
+        clean() # на случай сбоя при предыдущем запуске
         main()
