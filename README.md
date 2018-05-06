@@ -2,6 +2,7 @@
 Video steganography tool.
 
 Can transform any video supported by FFmpeg to MP4 (video -> MP4 video file [H264/MP3])
+
 Hides/extracts data into/from *.MP4 videos
 
 requirements:
