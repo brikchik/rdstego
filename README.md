@@ -1,9 +1,8 @@
 # rdstego
-Video steganography tool. Works under Windows OS (can work in Linux with WINE package)
+Video steganography tool.
 
+Can transform any video supported by FFmpeg to MP4 (video -> MP4 video file [H264/MP3])
 Hides/extracts data into/from *.MP4 videos
-
-Uses Achmad Zaenuri's mp3stegz algorithm for audio processing
 
 requirements:
 1. FFmpeg
